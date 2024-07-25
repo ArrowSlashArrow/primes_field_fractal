@@ -5,6 +5,7 @@ const WIDTH: i32 = 1280;
 const HEIGHT: i32 = 720;
 
 fn rand_colour(seed: i32) -> Color {
+    if seed == 0 {return Color::from_rgba(0, 0, 0, 255);}
     let red: u8 = ((((seed * 956) >> 6) * 54) % 256) as u8;
     let green: u8 = ((((seed * 695) >> 5) * 45) % 256) as u8;
     let blue: u8 = ((((seed * 569) >> 7) * 76) % 256) as u8;
@@ -40,12 +41,6 @@ fn field_filter(x: i32, y: i32) -> i32 {
     }
 }
 
-fn generate_colour_map(num_array: Vec<Vec<i32>>, offset: i32) {
-    for y in 0..HEIGHT {
-        for x in 0..WIDTH {
-             
-        }}}
-
 
 
 fn render(num_array: Vec<Vec<i32>>, offset: i32) {
@@ -54,15 +49,16 @@ fn render(num_array: Vec<Vec<i32>>, offset: i32) {
             let val = num_array[(y + offset) as usize][(x + offset) as usize];
             if val > 0 {
                 draw_line(x as f32, y as f32, 1.0 + x as f32, y as f32, 1.0, rand_colour(val));
-            }
-        }
-    }
-}
+            }}}}
 
 
 #[macroquad::main(config_window())]
 async fn main() {
     println!("Hello, world!"); // line is here to make sure the program compiles
+    // initialize image and texture
+    let mut image = Image::gen_image_color(WIDTH as u16, HEIGHT as u16, BLACK);
+    let texture = Texture2D::from_image(&mut image);
+
     let mut offset = 0; // offset of x and y
     let mut num_array: Vec<Vec<i32>> = vec![];
     for y in 0..HEIGHT {
@@ -75,12 +71,23 @@ async fn main() {
 
     loop {
         clear_background(BLACK);
-        generate_colour_map(num_array.clone(), offset);
-        let now = Instant::now();
-        render(num_array.clone(), offset);
-        let render_time = now.elapsed().as_millis();
+
+        let now = Instant::now();// <- these lines marked with // are for benchmarking
+
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
+                image.set_pixel(x as u32, y as u32, rand_colour(num_array[(y + offset) as usize][(x + offset) as usize]));
+            }
+        }
+        texture.update(&image);
+        draw_texture(&texture, 0.0, 0.0, WHITE);
+
+
+        let render_time = now.elapsed().as_millis(); //
         let mut new_row: Vec<i32> = vec![];
-        let now = Instant::now();
+        let now = Instant::now(); //
+
+
         for _ in 0..offset {
             new_row.push(0);
         }
@@ -95,7 +102,7 @@ async fn main() {
         for y in 0..HEIGHT {
             num_array[(y + offset) as usize].push(field_filter(WIDTH + offset, y + offset));
         }
-        let update_time = now.elapsed().as_millis();
+        let update_time = now.elapsed().as_millis(); //
         println!("Render time: {}ms | Update time: {}ms", render_time, update_time);
 
         next_frame().await;
